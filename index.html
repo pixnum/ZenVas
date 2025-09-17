@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZenVas - Vastu Compass</title>
+<style>
+:root {
+  --bg:#e0e5ec;
+  --text:#222;
+  --shadow-light:#ffffff;
+  --shadow-dark:#babecc;
+}
+body {
+  margin:0; height:100vh;
+  display:flex; justify-content:center; align-items:center;
+  background:var(--bg); font-family:'Segoe UI',sans-serif; color:var(--text);
+}
+.app { display:flex; flex-direction:column; align-items:center; gap:20px; width:100%; max-width:400px; padding:20px; }
+.header { width:100%; display:flex; justify-content:space-between; align-items:center; }
+.title { font-size:22px; font-weight:bold; }
+.btn {
+  background: var(--bg);
+  border-radius: 50%;
+  box-shadow: -4px -4px 8px var(--shadow-light),
+              4px 4px 8px var(--shadow-dark);
+  width: 40px; height: 40px; display:flex; justify-content:center; align-items:center;
+  cursor:pointer; transition:all 0.2s ease; font-size:18px;
+}
+.btn:active { box-shadow: inset -4px -4px 8px var(--shadow-light), inset 4px 4px 8px var(--shadow-dark); }
+
+.compass {
+  position: relative;
+  width: 300px; height: 300px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: radial-gradient(circle at center, #e0e5ec 0%, #cfd8e3 70%);
+  box-shadow: -6px -6px 12px var(--shadow-light),
+              6px 6px 12px var(--shadow-dark),
+              inset -3px -3px 6px rgba(255,255,255,0.5),
+              inset 3px 3px 6px rgba(0,0,0,0.1);
+}
+.zone-slice { border-radius:50%; opacity:0.75; transition: all 0.3s ease; position:absolute; width:100%; height:100%; clip-path: polygon(50% 50%, 100% 0, 100% 100%); }
+.north      { background:#0077b6; transform:rotate(0deg);}
+.northeast  { background:#ffd60a; transform:rotate(45deg);}
+.east       { background:#90be6d; transform:rotate(90deg);}
+.southeast  { background:#f48c06; transform:rotate(135deg);}
+.south      { background:#d00000; transform:rotate(180deg);}
+.southwest  { background:#6d597a; transform:rotate(225deg);}
+.west       { background:#3a86ff; transform:rotate(270deg);}
+.northwest  { background:#4cc9f0; transform:rotate(315deg);}
+
+.dial {
+  position: absolute; top:50%; left:50%; width:260px; height:260px;
+  margin-left:-130px; margin-top:-130px; border-radius:50%;
+  border:2px solid rgba(0,0,0,0.15);
+  background: radial-gradient(circle at center, rgba(255,255,255,0.7), rgba(255,255,255,0.2));
+  z-index:2;
+  box-shadow: inset -4px -4px 8px rgba(255,255,255,0.5),
+              inset 4px 4px 8px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease-out;
+}
+.needle {
+  position: absolute; top:50%; left:50%; width:6px; height:140px;
+  background: linear-gradient(to top, #ff4d4d, #ff0000);
+  transform-origin: bottom center; margin-left:-3px; margin-top:-140px;
+  border-radius:4px; z-index:3;
+  box-shadow: 0 0 10px rgba(255,0,0,0.5);
+  transition: transform 0.2s ease-out;
+}
+@keyframes glow { 0%{box-shadow:0 0 6px rgba(255,0,0,0.4);} 50%{box-shadow:0 0 16px rgba(255,0,0,0.7);} 100%{box-shadow:0 0 6px rgba(255,0,0,0.4);} }
+.needle.active { animation: glow 1.2s infinite; }
+@keyframes pulse { 0%{transform:scale(1);opacity:0.75;} 50%{transform:scale(1.08);opacity:1;} 100%{transform:scale(1);opacity:0.75;} }
+.zone-slice.active-zone { animation: pulse 1s infinite; opacity:1 !important; }
+
+.directions { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:100%; height:100%; display:flex; justify-content:center; align-items:center; }
+.directions span { position:absolute; font-weight:700; font-size:18px; text-shadow:1px 1px 2px rgba(0,0,0,0.2);}
+.directions .north { top:10%; left:50%; transform:translateX(-50%); color:#ff4d4d;}
+.directions .east { top:50%; right:10%; transform:translateY(-50%); color:#00a6ff;}
+.directions .south { bottom:10%; left:50%; transform:translateX(-50%); color:#32cd32;}
+.directions .west { top:50%; left:10%; transform:translateY(-50%); color:#ffbf00;}
+
+.info-card { width:100%; text-align:center; padding:15px; border-radius:20px;
+  background:var(--bg); box-shadow: -5px -5px 10px var(--shadow-light), 5px 5px 10px var(--shadow-dark);}
+.degree { font-size:20px; margin-bottom:5px; font-weight:bold; }
+.zone { font-size:16px; font-weight:bold; margin-bottom:5px; }
+.zone-tip { font-size:13px; color:#555; margin-bottom:10px; }
+.btn-group { display:flex; justify-content:center; gap:10px; }
+.affirmation-card { margin-top:10px; padding:12px; border-radius:15px;
+  font-size:14px; font-style:italic; text-align:center; background:var(--bg);
+  box-shadow: inset -3px -3px 6px var(--shadow-light), inset 3px 3px 6px var(--shadow-dark); }
+
+.footer {
+  margin-top:15px;
+  padding:10px 15px;
+  width:100%;
+  text-align:center;
+  font-size:12px;
+  color: var(--text);
+  border-radius:15px;
+  background: var(--bg);
+  box-shadow: -4px -4px 8px var(--shadow-light),
+              4px 4px 8px var(--shadow-dark);
+}
+
+body.dark { --bg:#2b2d42; --text:#f1f1f1; --shadow-light:#3a3c55; --shadow-dark:#1a1a28; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="title">ZenVas</div>
+    <div class="btn" id="toggleMode">🌙</div>
+  </div>
+
+  <div class="compass">
+    <div class="zone-slice north"></div>
+    <div class="zone-slice northeast"></div>
+    <div class="zone-slice east"></div>
+    <div class="zone-slice southeast"></div>
+    <div class="zone-slice south"></div>
+    <div class="zone-slice southwest"></div>
+    <div class="zone-slice west"></div>
+    <div class="zone-slice northwest"></div>
+
+    <div class="dial" id="dial">
+      <div class="needle" id="needle"></div>
+    </div>
+
+    <div class="directions">
+      <span class="north">N</span>
+      <span class="east">E</span>
+      <span class="south">S</span>
+      <span class="west">W</span>
+    </div>
+  </div>
+
+  <div class="info-card">
+    <div class="degree" id="degree">0°</div>
+    <div class="zone" id="zone">Vastu Zone: --</div>
+    <div class="zone-tip" id="zoneTip">Tip: --</div>
+    <div class="btn-group">
+      <div class="btn" id="lockBtn">🔒</div>
+      <div class="btn" id="speakBtn">🎤</div>
+      <div class="btn" id="affirmBtn">🔁</div>
+    </div>
+  </div>
+
+  <div class="affirmation-card" id="affirmation">"Balance your space, balance your life."</div>
+
+  <!-- Footer added -->
+  <div class="footer">© Manik Roy 2025. All Rights Reserved.</div>
+</div>
+
+<script>
+// JS functionality
+const dial=document.getElementById("dial");
+const needle=document.getElementById("needle");
+const degreeDisplay=document.getElementById("degree");
+const zoneDisplay=document.getElementById("zone");
+const zoneTip=document.getElementById("zoneTip");
+const toggleMode=document.getElementById("toggleMode");
+const lockBtn=document.getElementById("lockBtn");
+const speakBtn=document.getElementById("speakBtn");
+const affirmBtn=document.getElementById("affirmBtn");
+let locked=false, currentZone="--";
+
+const zoneTips={
+  "North - Career & Wealth":"Keep North clean for wealth.",
+  "North-East - Pooja & Meditation":"Use for pooja/meditation to boost spirituality.",
+  "East - Health & Energy":"Keep East bright for good health.",
+  "South-East - Kitchen & Fire":"Kitchen here keeps energy flowing.",
+  "South - Strength & Fame":"Keep South stable and clutter-free.",
+  "South-West - Stability":"Heavy furniture here enhances stability.",
+  "West - Gains & Prosperity":"Store achievements here.",
+  "North-West - Guests & Air":"Keep open for social energy."
+};
+
+toggleMode.addEventListener("click",()=>{
+  document.body.classList.toggle("dark");
+  toggleMode.textContent=document.body.classList.contains("dark")?"🌞":"🌙";
+});
+lockBtn.addEventListener("click",()=>{ locked=!locked; lockBtn.textContent=locked?"🔓":"🔒"; });
+speakBtn.addEventListener("click",()=>{ if(currentZone!=="--"){ const msg=new SpeechSynthesisUtterance("You are facing "+currentZone); msg.lang="en-IN"; speechSynthesis.speak(msg); } });
+const affirmations=["Balance your space, balance your life.","Energy flows where attention goes.","A calm home creates a calm mind.","Harmony within leads to harmony outside.","Your space reflects your soul.","Gratitude opens the doors to abundance.","Clarity of mind begins with clarity of space.","Every corner should radiate positivity.","Light invites prosperity, darkness hides it.","Peaceful surroundings bring peaceful thoughts."];
+affirmBtn.addEventListener("click",()=>{ const i=Math.floor(Math.random()*affirmations.length); document.getElementById("affirmation").textContent='"'+affirmations[i]+'"'; });
+
+function getVastuZone(deg){ deg=Math.round(deg);
+  if(deg>=337||deg<23)return{name:"North - Career & Wealth"};
+  if(deg>=23&&deg<68)return{name:"North-East - Pooja & Meditation"};
+  if(deg>=68&&deg<113)return{name:"East - Health & Energy"};
+  if(deg>=113&&deg<158)return{name:"South-East - Kitchen & Fire"};
+  if(deg>=158&&deg<203)return{name:"South - Strength & Fame"};
+  if(deg>=203&&deg<248)return{name:"South-West - Stability"};
+  if(deg>=248&&deg<293)return{name:"West - Gains & Prosperity"};
+  if(deg>=293&&deg<337)return{name:"North-West - Guests & Air"};
+  return{name:"--"};
+}
+function updateZoneTip(zoneName){ zoneTip.textContent=zoneTips[zoneName]||"--"; }
+function highlightZone(zoneName){ document.querySelectorAll(".zone-slice").forEach(z=>z.classList.remove("active-zone")); const cls=zoneName.split(" ")[0].toLowerCase(); const active=document.querySelector("."+cls); if(active)active.classList.add("active-zone"); }
+function updateCompass(event){ if(locked)return; let heading=event.alpha; if(typeof event.webkitCompassHeading!=="undefined") heading=event.webkitCompassHeading; else heading=360-heading;
+if(heading!==null){ dial.style.transform=`rotate(${heading}deg)`; needle.style.transform=`rotate(${heading}deg)`; needle.classList.add("active"); degreeDisplay.textContent=Math.round(heading)+"°";
+const z=getVastuZone(heading); currentZone=z.name; zoneDisplay.textContent="Vastu Zone: "+currentZone; updateZoneTip(currentZone); highlightZone(currentZone);} }
+
+if(window.DeviceOrientationEvent){ window.addEventListener("deviceorientationabsolute",updateCompass,true); window.addEventListener("deviceorientation",updateCompass,true); }
+else console.log("Compass not supported");
+
+// Desktop slider fallback
+const slider=document.createElement("input"); slider.type="range"; slider.min=0; slider.max=360; slider.value=0; slider.style.width="80%"; document.querySelector(".info-card").appendChild(slider);
+slider.addEventListener("input",()=>{ updateCompass({alpha:360-parseInt(slider.value)}); });
+
+</script>
+</body>
+</html>
