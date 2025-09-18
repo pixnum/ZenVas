@@ -1,2 +1,2 @@
 # ZenVas
-Cuisine Planner App
+Vastu Compass App
