@@ -1,2 +1,2 @@
 # ZenVas
-Vastu Compass App
+Vastu Compass
